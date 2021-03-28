@@ -1,6 +1,6 @@
 import json
 import struct
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.python.tools.freeze_graph import freeze_graph
 import cv2
 import numpy as np
@@ -137,7 +137,7 @@ def build_network(image, layers, variables):
     return heatmaps, offsets, displacement_fwd, displacement_bwd
 
 
-def convert(model_id, model_dir, check=False):
+def convert(model_id, model_dir, sess, check=False):
     cfg = load_config()
     checkpoints = cfg['checkpoints']
     image_size = cfg['imageSize']
@@ -185,17 +185,17 @@ def convert(model_id, model_dir, check=False):
             tf.train.write_graph(cg, model_dir, "model-%s.pbtxt" % chkpoint)
 
             # Freeze graph and write our final model file
-            freeze_graph(
-                input_graph=os.path.join(model_dir, "model-%s.pbtxt" % chkpoint),
-                input_saver="",
-                input_binary=False,
-                input_checkpoint=checkpoint_path,
-                output_node_names='heatmap,offset_2,displacement_fwd_2,displacement_bwd_2',
-                restore_op_name="save/restore_all",
-                filename_tensor_name="save/Const:0",
-                output_graph=os.path.join(model_dir, "model-%s.pb" % chkpoint),
-                clear_devices=True,
-                initializer_nodes="")
+            # freeze_graph(
+            #     input_graph=os.path.join(model_dir, "model-%s.pbtxt" % chkpoint),
+            #     input_saver="",
+            #     input_binary=False,
+            #     input_checkpoint=checkpoint_path,
+            #     output_node_names='heatmap,offset_2,displacement_fwd_2,displacement_bwd_2',
+            #     restore_op_name="save/restore_all",
+            #     filename_tensor_name="save/Const:0",
+            #     output_graph=os.path.join(model_dir, "model-%s.pb" % chkpoint),
+            #     clear_devices=True,
+            #     initializer_nodes="")
 
             if check and os.path.exists("./images/tennis_in_crowd.jpg"):
                 # Result
@@ -219,3 +219,6 @@ def convert(model_id, model_dir, check=False):
                 print(heatmaps_result[0:1, 0:1, :])
                 print(heatmaps_result.shape)
                 print(np.mean(heatmaps_result))
+
+            from converter import convert_posenet_model
+            convert_posenet_model(sess)

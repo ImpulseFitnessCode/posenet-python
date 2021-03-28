@@ -1,4 +1,5 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+import tensorflow as tf2
 import os
 import posenet.converter.config
 
@@ -32,6 +33,13 @@ def load_config(model_ord):
     return model_cfg
 
 
+def load_model_keras(model_id, model_dir):
+    model_ord = model_id_to_ord(model_id)
+    model_cfg = load_config(model_ord)
+    model_path = os.path.join(model_dir, 'saved_model.pb')
+    model = tf2.saved_model.load(model_dir)
+    return model.signatures['serving_default']
+
 def load_model(model_id, sess, model_dir=MODEL_DIR):
     model_ord = model_id_to_ord(model_id)
     model_cfg = load_config(model_ord)
@@ -39,13 +47,12 @@ def load_model(model_id, sess, model_dir=MODEL_DIR):
     if not os.path.exists(model_path):
         print('Cannot find model file %s, converting from tfjs...' % model_path)
         from posenet.converter.tfjs2python import convert
-        convert(model_ord, model_dir, check=False)
+        convert(model_ord, model_dir, sess, check=False)
         assert os.path.exists(model_path)
 
     with tf.gfile.GFile(model_path, 'rb') as f:
         graph_def = tf.GraphDef()
     graph_def.ParseFromString(f.read())
-    sess.graph.as_default()
     tf.import_graph_def(graph_def, name='')
 
     if DEBUG_OUTPUT:
